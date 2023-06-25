@@ -1,15 +1,18 @@
 ClearScreen macro
-  mov  ah, 0
-  mov  al, 3
-  int  10H
+    mov  ah, 0
+    mov  al, 3
+    int  10H
 endm
 
-PrintText macro Text
-    mov ax,@data
-    mov ds,ax
-    mov ah,09h
-    lea dx,Text
-    int 21h
+PrintText macro buffer      
+    mov dx, offset buffer 
+    mov ah,09
+    int 21
+endm
+
+ExtractOption macro
+    mov ah, 08
+    int 21
 endm
 
 EnterOption macro
@@ -17,8 +20,12 @@ EnterOption macro
     int 21h  
 endm
 
-mode_info macro
-    ClearScreen
-    PrintText minfo
-    EnterOption
+printchar macro charToPrint
+    mov ah, 2       
+    mov dl, charToPrint 
+    int 21h 
 endm
+
+
+
+
