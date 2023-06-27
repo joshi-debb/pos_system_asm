@@ -1,3 +1,4 @@
+
 ClearScreen macro
     mov  ah, 0
     mov  al, 3
@@ -19,13 +20,6 @@ EnterOption macro
     mov ah,01 
     int 21h  
 endm
-
-printchar macro charToPrint
-    mov ah, 2       
-    mov dl, charToPrint 
-    int 21h 
-endm
-
 
 get_date macro
     mov ah, 2a
