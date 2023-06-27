@@ -3,17 +3,15 @@ include Macros.asm
 .model small
 .radix 16
 .stack
-
 .data
-   
+
     ; Mensajes de bienvenida
-    minfo   db 0a,"Universidad de San Carlos de Guatemala        "
-            db 0a,"Facultad de Ingenieria                        "
-            db 0a,"Escuela de Vacaciones                         "
-            db 0a,"Arquitectura de Computadoras y Ensambladores 1"
-            db 0a,"                                              "
-            db 0a,"Nombre: Josue Zuleta                          "
-            db 0a,"Carne: 202006353                              ","$"
+    minfo   db 0a,"Universidad de San Carlos de Guatemala           "
+            db 0a,"Facultad de Ingenieria                           "
+            db 0a,"Escuela de Vacaciones                            " 
+            db 0a,"Arquitectura de Computadoras y Ensambladores 1   "
+            db 0a,"Nombre: Juan Josue Zuleta Beb                    "
+            db 0a,"Carne: 202006353                                 ","$"
 
     ; Mensajes de msg_error_txt
     msg_exit_txt    db 0a," > Ejecucion Terminada",24
@@ -31,6 +29,14 @@ include Macros.asm
                     db 0a,"   2. Eliminar      "
                     db 0a,"   3. Mostrar       "
                     db 0a,"   4. Regresar      ","$"
+    
+    menutools       db 0a," > Herramientas <              "
+                    db 0a,"   1. Catalogo Completo        "
+                    db 0a,"   2. Productos por Alfabeto   "
+                    db 0a,"   3. Reporte de Ventaget_hours        "
+                    db 0a,"   4. Productos sin Existencia "
+                    db 0a,"   5. Regresar                 ","$"
+
 
     ; Variables de control
     empty_line_txt  db 0a,"$"
@@ -43,7 +49,7 @@ include Macros.asm
     desc_prod       db 0a,"   > Descripcion:  ","$"
 
     ; credenciales
-    identifier      db "jzuletaa","$"
+    identifier      db "jzuleta","$"
     password        db "202006353","$"
 
     logged_txt      db " > Bienvenido!",0a,0a,0a,"$"
@@ -76,31 +82,53 @@ include Macros.asm
     puntero_temp    dw 0000
     cod_prod_temp   db 05 dup (0)
     ceros          db     2a  dup (0)
-.code
 
+    ; PARA MODULO VENTASSSSSS
+    CodigoVentas  db 0a," > Codigo  : ","$"
+    UnidadVentas  db 0a," > Unidades: ","$"
+    ValorUnidad    db    02 dup (0) 
+    NOSTRINGVENTAS   db  "El producto No existe Ingrese Codigo valido","$"
+    num_ventas   dw    0000
+    fileventas    db "VENT.BIN", 00 
+    handle_ventas dw  0000
+
+    ;SECCION PARA ALMACENAR DIA , MES ,ANO
+    dia db 3 dup("$")
+    mes db 3 dup("$")
+    anio db 5 dup("$")
+    ;almacenar MINUTO , HORA
+    hora db 3 dup("$")
+    minuto db 3 dup("$")
+    TotalVentas   dw    0000
+    VentaSIoNO   db 0a,0a,"[ENTER] confirmar venta, [q] Cancelar",0a,"$"
+    TOTALVENTA db " > Costo de venta:","$"
+    GuardarTemporalVenta dw 0
+    IncItem db 0
+
+.code
 LeerFile proc 
-    mov ah, 3D   
-    mov al, 02       
-    mov dx, offset fileproductos 
-    int 21   
-    ret
+            mov ah, 3D   
+            mov al, 02       
+            mov dx, offset fileproductos 
+            int 21   
+            ret
 LeerFile endp
 
 CreateFile proc 
-    mov ah, 3C
-    mov cx , 0000      
-    mov dx, offset fileproductos 
-    int 21   
-    ret
+            mov ah, 3C
+            mov cx , 0000      
+            mov dx, offset fileproductos 
+            int 21   
+            ret
 CreateFile endp
 
 LimpiarBuff:
-    ciclo_memset:
-        mov AL, 00
-        mov [DI], AL
-        inc DI
-        loop ciclo_memset
-        ret
+ciclo_memset:
+		mov AL, 00
+		mov [DI], AL
+		inc DI
+		loop ciclo_memset
+		ret
 
 
 ; crear producto
@@ -355,7 +383,7 @@ make_prod proc
                     jmp IngresarPrecio
             FINPRICE:
                 mov DI, offset cod_price
-                call cadenaAnum
+                call string_to_int
                 mov [num_price], AX
                 mov DI, offset cod_price
                 mov CX, 0002
@@ -432,7 +460,7 @@ make_prod proc
                 jmp IngresarUnidades
             FINUNIT:
                 mov DI, offset cod_units
-                call cadenaAnum
+                call string_to_int
                 mov [num_units], AX
                 mov DI, offset cod_units
                 mov CX, 0002
@@ -623,100 +651,90 @@ clearOutBuff proc
     ret
 clearOutBuff endp
 
-; extrae la cita del buffer
 extract_quote proc
+    ; busca la primera comilla
      find_quotes:
         mov bx, countBuff
         mov al, DatosFilename[bx]
         cmp al, quotes
-        jne next_char
+        jne next_char ; si no es comilla, avanza al siguiente caracter
         inc countBuff
 
     save_char:
         mov bx, countBuff
         mov al, DatosFilename[bx]
         cmp al, quotes
-        je end_quotes
+        je end_quotes ; si es comilla, termina la extracción
         mov bx, countOutBuff
         mov outBuff[bx], al
         inc countOutBuff
         inc countBuff
-        jmp save_char
+        jmp save_char ; guarda el caracter y avanza al siguiente
 
     next_char:
         inc countBuff
         mov bx, countBuff
         cmp DatosFilename[bx], "$"
-        jne find_quotes
+        jne find_quotes ; si no es fin de cadena, busca la siguiente comilla
 
     end_quotes:
         mov bx, countOutBuff
-        mov outBuff[bx], "$"
+        mov outBuff[bx], "$" ; agrega fin de cadena
         ret
 extract_quote endp
 
-.STARTUP
-    inicio:   
-        mov AX, 7e7
-		call numAcadena
-		mov BX, 01
-		mov CX, 0002
-		mov DX, offset numero
-		mov AH, 40
-		int 21
-        ClearScreen
-        PrintText minfo    
-
+.startup
+inicio:   
+    MensajeInicial:
+            ClearScreen
+            PrintText minfo     
+  
     LeerArchivo:  
-        ; abrir archivo
-        mov ah, 3D   
-        mov al, 00       
-        mov dx, offset filename 
-        int 21    
-        jc bool_NoExiste 
-        mov bx , ax ; handle
-        ; leer archivo
-        mov ah , 3F
-        mov cx , 100
-        mov dx , offset DatosFilename 
-        int 21
-        jmp  ExtraerCredenciales
-
+            ; abrir archivo
+            mov ah, 3D   
+            mov al, 00       
+            mov dx, offset filename 
+            int 21    
+            jc bool_NoExiste 
+            mov bx , ax ; handle
+            ; leer archivo
+            mov ah , 3F
+            mov cx , 100
+            mov dx , offset DatosFilename 
+            int 21
+            jmp  ExtraerCredenciales
     ExtraerCredenciales:
-        mov countBuff, 0
-        call clearOutBuff 
-        call extract_quote
-        xor si,si
-        jmp CompararUseR
+            mov countBuff, 0
+            call clearOutBuff 
+            call extract_quote
+            xor si,si
+            jmp CompararUseR
 
     CompararUser:
-        mov bh, outBuff[si]
-        mov bl, identifier[si]
-        cmp bh,bl
-        jnz NoIgual
-        cmp bh , "$"
-        jz  Clave
-        inc si
-        jmp CompararUser
-
+            mov bh, outBuff[si]
+            mov bl, identifier[si]
+            cmp bh,bl
+            jnz NoIgual
+            cmp bh , "$"
+            jz  Clave
+            inc si
+            jmp CompararUser
     Clave:
-        inc countBuff
-        call clearOutBuff 
-        call extract_quote
+            inc countBuff
+            call clearOutBuff 
+            call extract_quote
 
-        xor si,si
-        jmp CompararClave
-
+            xor si,si
+            jmp CompararClave
     CompararClave:
-        mov bh, outBuff[si]
-        mov bl, password[si]
-        cmp bh,bl
-        jnz NoIgual
-        cmp bh , "$"
-        jz Login
-        inc si
-        jmp CompararClave
-
+            mov bh, outBuff[si]
+            mov bl, password[si]
+            cmp bh,bl
+            jnz NoIgual
+            cmp bh , "$"
+            jz Login
+            inc si
+            jmp CompararClave
     Login:
         ; cierra el archivo
         mov ah, 3E     
@@ -736,10 +754,10 @@ extract_quote endp
         ExtractOption
         cmp al , 31
         je Prod_Menu
-        ; cmp al , 32
-        ; je MENU_VENTAS
-        ; cmp al , 33
-        ; je MENU_HERRAMIENTAS
+        cmp al , 32
+        je sold_Menu
+        cmp al , 33
+        je tool_menu
         cmp al , 34
         je Exit
         PrintText opt_error_txt 
@@ -758,7 +776,319 @@ extract_quote endp
         cmp al , 34
         je Main_Menu
         jmp Prod_Menu
+     
+    sold_Menu:
+        mov IncItem , 0
+        MenuVENTAS:
+            cmp IncItem , 0A
+            je main_menu
+            get_date
+            get_hour
+            mov DX, 0000
+            mov [puntero_temp], DX
+            PrintText empty_line_txt
+            PrintText TOTALVENTA
+            mov AX, [TotalVentas]
+            call int_to_stringTotal
+            ;; [numero] tengo la cadena convertida
+            mov BX, 0001
+            mov CX, 0005
+            mov DX, offset numero
+            mov AH, 40
+            int 21
+        VentasCODE:
+            
+            PrintText CodigoVentas
+            mov DX, offset buffer_entrada
+            mov AH, 0a
+            int 21
+            mov DI, offset buffer_entrada
+            inc DI
+            mov AL, [DI]
+            cmp AL, 00
+            je  VentasCODE
+            cmp AL, 05
+            jb  PASO1  
+            jmp VentasCODE
+        PASO1: 
+            mov SI, offset cod_prod_temp
+            mov DI, offset buffer_entrada
+            inc DI
+            mov CH, 00
+            mov CL, [DI]
+            inc DI  
+            jmp PASO2
+        PASO2:	
+            mov AL, [DI]
+            mov [SI], AL
+            inc SI
+            inc DI
+            loop PASO2
+            jmp ES_FIN
+        ES_FIN:
+            mov DI , offset cod_prod_temp
+            jmp PASO3
+        PASO3:
+            mov AL, [DI]
+            cmp AL, 'f'
+            je Salir_1
+            jmp PASO4
+        Salir_1:
+            inc DI
+            mov AL, [DI]
+            cmp AL , 'i'
+            je Salir_2
+        Salir_2:
+            inc DI
+            mov AL, [DI]
+            cmp AL , 'n'
+            je Salir_3
+        Salir_3:
+            mov DI, offset cod_prod_temp
+            mov Cx , 05
+            call LimpiarBuff
+            jmp main_menu
+
+        PASO4:
+            call LeerFile
+            mov [handle_prods], AX
+            jmp search_prod
+        search_prod:
+            ; lectura
+            mov BX, [handle_prods]
+            mov CX, 05
+            mov DX, offset cod_prod
+            moV AH, 3f
+            int 21
+            mov BX, [handle_prods]
+            mov CX, 21
+            mov DX, offset cod_desc
+            moV AH, 3f
+            int 21
+            mov BX, [handle_prods]
+            mov CX, 0002
+            mov DX, offset num_price
+            moV AH, 3f
+            int 21
+            mov BX, [handle_prods]
+            mov CX, 0002
+            mov DX, offset num_units
+            moV AH, 3f
+            int 21
+            ; verifica si llego al fin
+            cmp AX, 0000   
+            je end_doc
+            ; obtengo los bytes recorridos
+            mov DX, [puntero_temp]
+            add DX, 2a
+            mov [puntero_temp], DX
+            ;;; verificar si es producto válido
+            mov AL, 00
+            cmp [cod_prod], AL
+            je search_prod
+            ;;; verificar el código
+            mov SI, offset cod_prod_temp
+            mov DI, offset cod_prod
+            mov CX, 0005
+            call cadenas_iguales
+            cmp DL, 0ff
+            je found_prod
+            jmp search_prod 
+
+        found_prod:
+                jmp ask_prod
+        end_doc:
+            mov BX, [handle_prods]
+            mov AH, 3e
+            int 21
+            PrintText empty_line_txt
+            PrintText empty_line_txt
+            PrintText NOSTRINGVENTAS
+            PrintText empty_line_txt
+            mov DI, offset cod_prod_temp
+            mov Cx , 05
+            call LimpiarBuff
+            jmp MenuVENTAS
+        ; termina  checkpoint correcto
+        ;analizar este porque da error 
+        ask_prod:
+            PrintText UnidadVentas
+            mov DX, offset buffer_entrada
+            mov AH, 0a
+            int 21
+            mov DI, offset buffer_entrada
+            inc DI
+            mov AL, [DI]
+            cmp AL, 00
+            je  ask_prod
+            cmp AL, 03
+            jb  PUNIDADES  
+            jmp ask_prod
+            PUNIDADES:
+                mov SI, offset ValorUnidad
+                mov DI, offset buffer_entrada
+                inc DI
+                mov CH, 00
+                mov CL, [DI]
+                inc DI 
+                jmp CopiarUnidad
+            CopiarUnidad:
+                mov AL , [DI]
+                mov [SI], AL
+                inc SI
+                inc DI 
+                loop CopiarUnidad
+                jmp PreguntarSicontinuar
+            PreguntarSicontinuar:
+                 PrintText VentaSIoNO
+                 ExtractOption
+                 cmp al , 71
+                 je MenuVENTAS
+                 jmp SEGUIRVENTA2
+
+            SEGUIRVENTA2:
+                mov DI, offset ValorUnidad
+                call string_to_int
+                mov [num_ventas], AX
+                mov DI, offset ValorUnidad
+                mov CX, 0002
+                call LimpiarBuff 
+                jmp ActualizarPRODUCTO
+      ActualizarPRODUCTO:
+                mov DX, [puntero_temp]
+		        sub DX, 2a
+                mov CX, 0000
+                mov BX, [handle_prods]
+                mov AL, 00
+                mov AH, 42
+                int 21
+
+                mov CX, 05
+                mov DX, offset cod_prod
+                mov AH, 40
+                int 21
+
+                mov CX, 21
+                mov DX, offset cod_desc
+                mov AH, 40
+                int 21
+                
+                mov CX, 0002
+                mov DX, offset num_price
+                mov AH, 40
+                int 21
+                ; resta unidades
+                mov ax , num_ventas
+                sub num_units , ax
+                mov CX, 0002
+                mov DX, offset num_units
+                mov AH, 40
+                int 21
+                ; multiplica
+                ; copio la variable para guardarla
+                mov ax , num_ventas
+                mov GuardarTemporalVenta , ax
+
+                mov ax , GuardarTemporalVenta
+                mov bx , num_price
+                mul bx
+                mov GuardarTemporalVenta , ax
+
+                mov ax , GuardarTemporalVenta
+                add TotalVentas , ax
+
+                mov BX, [handle_prods]
+                mov AH, 3e
+                int 21
+
+                jmp do_store
     
+    do_store:
+        ; abrir archivo VENT.BIN
+        mov ah, 3D   
+        mov al, 02       
+        mov dx, offset fileventas 
+        int 21  
+        jc existeVenta 
+        jmp sigueReadV
+        ; si no existe lo crea
+        existeVenta:
+            mov ah, 3C
+            mov cx , 0000      
+            mov dx, offset fileventas 
+            int 21                   
+        sigueReadV:
+            mov [handle_ventas], AX
+            mov BX, [handle_ventas]
+            ;; vamos al final del archivo
+            mov CX, 00 
+            mov DX, 00
+            mov AL, 02
+            mov AH, 42
+            int 21
+
+            mov CX, 021
+            mov DX, offset cod_desc
+            mov AH, 40
+            int 21
+
+            mov CX, 02
+            mov DX, offset dia
+            mov AH, 40
+            int 21
+
+            mov CX, 02
+            mov DX, offset mes
+            mov AH, 40
+            int 21
+
+            mov CX, 04
+            mov DX, offset anio
+            mov AH, 40
+            int 21
+
+            mov CX, 02
+            mov DX, offset hora
+            mov AH, 40
+            int 21
+
+            mov CX, 02
+            mov DX, offset minuto
+            mov AH, 40
+            int 21
+           
+            mov CX, 05
+            mov DX, offset cod_prod
+            mov AH, 40
+            int 21
+
+            mov CX, 0002
+            mov DX, offset num_ventas
+            mov AH, 40   
+            int 21    
+            ;; cerrar archivo
+            mov AH, 3e
+            int 21
+            Inc IncItem
+            jmp MenuVENTAS
+
+
+    tool_menu:
+        PrintText menutools
+        ExtractOption
+        cmp al , 31
+        je main_menu
+        cmp al , 32
+        je sold_menu
+        cmp al , 33
+        je tool_menu
+        cmp al , 34
+        je Exit
+        cmp al , 35
+        je main_menu
+        PrintText opt_error_txt 
+        jmp tool_menu
+
     mk_prod:
         call make_prod
         jmp Prod_Menu
@@ -772,141 +1102,183 @@ extract_quote endp
         jmp Prod_Menu
 
     NoIgual:
-        PrintText empty_line_txt
         jmp Exit 
        
     bool_NoExiste:
-        jmp Exit 
+               jmp Exit 
 
 
-    PrintText_estructura:
+cadenas_iguales:
+ciclo_cadenas_iguales:
+		mov AL, [SI]
+		cmp [DI], AL
+		jne no_son_iguales
+		inc DI
+		inc SI
+		loop ciclo_cadenas_iguales
+		mov DL, 0ff
+		ret
+no_son_iguales:	mov DL, 00
+		ret
+
+PrintText_estructura:
         PrintText empty_line_txt
-        mov DI, offset cod_prod
-    ciclo_poner_dolar_1:
-        mov AL, [DI]
-        cmp AL, 00
-        je poner_dolar_1
-        inc DI
-        jmp ciclo_poner_dolar_1
-    poner_dolar_1:
-        mov AL, 24  ;; dólar
-        mov [DI], AL
-        ;; PrintText normal
-        PrintText cod_prod
-        PrintText empty_line_txt
+		mov DI, offset cod_prod
+ciclo_poner_dolar_1:
+		mov AL, [DI]
+		cmp AL, 00
+		je poner_dolar_1
+		inc DI
+		jmp ciclo_poner_dolar_1
+poner_dolar_1:
+		mov AL, 24  ;; dólar
+		mov [DI], AL
+
+		PrintText cod_prod
+		PrintText empty_line_txt
 
         PrintText empty_line_txt
         PrintText empty_line_txt
-        ret
+		ret
 
 
-    PrintText_CODE:
-        mov DI, offset cod_prod
-    ciclo_poner_dolar_CODE:
-        mov AL, [DI]
-        cmp AL, 00
-        je poner_dolar_code
-        inc DI
-        jmp ciclo_poner_dolar_CODE
-    poner_dolar_code:
-        mov AL, 24  ;; dólar
-        mov [DI], AL
-        ;; PrintText normal
+
+PrintText_CODE:
+		mov DI, offset cod_prod
+ciclo_poner_dolar_CODE:
+		mov AL, [DI]
+		cmp AL, 00
+		je poner_dolar_code
+		inc DI
+		jmp ciclo_poner_dolar_CODE
+poner_dolar_code:
+		mov AL, 24  ;; dólar
+		mov [DI], AL
+        ; PrintText viewCabecera
         PrintText empty_line_txt
-        PrintText cod_prod
+		PrintText cod_prod
+		PrintText empty_line_txt
+		ret
+
+PrintText_DESC:
+		mov DI, offset cod_desc
+ciclo_poner_dolar_DESC:
+		mov AL, [DI]
+		cmp AL, 00
+		je poner_dolar_desc
+		inc DI
+		jmp ciclo_poner_dolar_DESC
+poner_dolar_desc:
+		mov AL, 24  ;; dólar
+		mov [DI], AL
+		;; PrintText normal
+		PrintText cod_desc
+		PrintText empty_line_txt
         PrintText empty_line_txt
-        ret
+		ret
 
-    PrintText_DESC:
-        mov DI, offset cod_desc
-    ciclo_poner_dolar_DESC:
-        mov AL, [DI]
-        cmp AL, 00
-        je poner_dolar_desc
-        inc DI
-        jmp ciclo_poner_dolar_DESC
-    poner_dolar_desc:
-        mov AL, 24  ;; dólar
-        mov [DI], AL
-        ;; PrintText normal
-        PrintText cod_desc
+
+
+int_to_string:
+		mov CX, 0002
+		mov DI, offset numero
+ciclo_poner30s:
+		mov BL, 30
+		mov [DI], BL
+		inc DI
+		loop ciclo_poner30s
+
+		mov CX, AX    ; inicializar contador
+		mov DI, offset numero
+		add DI, 0001
+
+ciclo_convertirAcadena:
+		mov BL, [DI]
+		inc BL
+		mov [DI], BL
+		cmp BL, 3a
+		je aumentar_siguiente_digito_primera_vez
+		loop ciclo_convertirAcadena
+		jmp retorno_convertirAcadena
+aumentar_siguiente_digito_primera_vez:
+		push DI
+aumentar_siguiente_digito:
+		mov BL, 30     ; poner en '0' el actual
+		mov [DI], BL
+		dec DI         ; puntero a la cadena
+		mov BL, [DI]
+		inc BL
+		mov [DI], BL
+		cmp BL, 3a
+		je aumentar_siguiente_digito
+		pop DI         ; se recupera DI
+		loop ciclo_convertirAcadena
+retorno_convertirAcadena:
+		ret
+
+int_to_stringTotal:
+		mov CX, 0005
+		mov DI, offset numero
+ciclo_poner30sTotal:
+		mov BL, 30
+		mov [DI], BL
+		inc DI
+		loop ciclo_poner30sTotal
+
+		mov CX, AX    ; inicializar contador
+		mov DI, offset numero
+		add DI, 0004
+		;;
+ciclo_convertirAcadenaTotal:
+		mov BL, [DI]
+		inc BL
+		mov [DI], BL
+		cmp BL, 3a
+		je aumentar_siguiente_digito_primera_vezTotal
+		loop ciclo_convertirAcadenaTotal
+		jmp retorno_convertirAcadenaTotal
+aumentar_siguiente_digito_primera_vezTotal:
+		push DI
+aumentar_siguiente_digitoTotal:
+		mov BL, 30     ; poner en '0' el actual
+		mov [DI], BL
+		dec DI         ; puntero a la cadena
+		mov BL, [DI]
+		inc BL
+		mov [DI], BL
+		cmp BL, 3a
+		je aumentar_siguiente_digitoTotal
+		pop DI         ; se recupera DI
+		loop ciclo_convertirAcadena
+retorno_convertirAcadenaTotal:
+		ret
+
+
+string_to_int:
+		mov AX, 0000    ; inicializar la salida
+		mov CX, 0002    ; inicializar contador
+		;;
+seguir_convirtiendo:
+		mov BL, [DI]
+		cmp BL, 00
+		je retorno_string_to_int
+		sub BL, 30      ; BL es el valor numérico del caracter
+		mov DX, 000a
+		mul DX          ; AX * DX -> DX:AX
+		mov BH, 00
+		add AX, BX 
+		inc DI          ; puntero en la cadena
+		loop seguir_convirtiendo
+retorno_string_to_int:
+		ret   
+
+     Exit:
         PrintText empty_line_txt
-        ret
-
-    numAcadena:
-        mov CX, 0002
-        mov DI, offset numero
-    ciclo_poner30s:
-        mov BL, 30
-        mov [DI], BL
-        inc DI
-        loop ciclo_poner30s
-
-        mov CX, AX    ; inicializar contador
-        mov DI, offset numero
-        add DI, 0001
-        ;;
-    ciclo_convertirAcadena:
-        mov BL, [DI]
-        inc BL
-        mov [DI], BL
-        cmp BL, 3a
-        je aumentar_siguiente_digito_primera_vez
-        loop ciclo_convertirAcadena
-        jmp retorno_convertirAcadena
-    aumentar_siguiente_digito_primera_vez:
-        push DI
-    aumentar_siguiente_digito:
-        mov BL, 30     ; poner en "0" el actual
-        mov [DI], BL
-        dec DI         ; puntero a la cadena
-        mov BL, [DI]
-        inc BL
-        mov [DI], BL
-        cmp BL, 3a
-        je aumentar_siguiente_digito
-        pop DI         ; se recupera DI
-        loop ciclo_convertirAcadena
-    retorno_convertirAcadena:
-        ret
-
-    cadenas_iguales:
-    ciclo_cadenas_iguales:
-        mov AL, [SI]
-        cmp [DI], AL
-        jne no_son_iguales
-        inc DI
-        inc SI
-        loop ciclo_cadenas_iguales
-        ;;;;; <<<
-        mov DL, 0ff
-        ret
-    no_son_iguales:	mov DL, 00
-        ret
-
-    cadenaAnum:
-        mov AX, 0000    ; inicializar la salida
-        mov CX, 0002    ; inicializar contador
-    seguir_convirtiendo:
-        mov BL, [DI]
-        cmp BL, 00
-        je retorno_cadenaAnum
-        sub BL, 30      ; BL es el valor numérico del caracter
-        mov DX, 000a
-        mul DX          ; AX * DX -> DX:AX
-        mov BH, 00
-        add AX, BX 
-        inc DI          ; puntero en la cadena
-        loop seguir_convirtiendo
-    retorno_cadenaAnum:
-        ret   
-    
-    Exit:
-        PrintText msg_exit_txt 
-
+        PrintText msg_exit_txt
+        PrintText empty_line_txt
 fin:
-.EXIT
-END
+.exit
+end
 
 
 
