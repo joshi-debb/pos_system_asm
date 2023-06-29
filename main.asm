@@ -82,6 +82,10 @@ include Macros.asm
     cod_prod_temp   db 05 dup (0)
     ceros           db 2a  dup (0)
 
+    cont_ventas_t   dw 0
+    cont_ventas_up  dw 0
+    cont_ventas_dn  dw 0
+
     ; structura ventas
     store_code      db 0a," > Codigo  : ","$"
     units_store     db 0a," > Unidades: ","$"
@@ -128,6 +132,7 @@ include Macros.asm
     anio            db 5 dup("$")
     hora            db 3 dup("$")
     minuto          db 3 dup("$")
+
     TotalVentas     dw 0000
     quest_store     db 0a,0a,"[ENTER] confirmar venta, [q] Cancelar",0a,"$"
     solds           db " > Total:","$"
@@ -137,6 +142,7 @@ include Macros.asm
     nombre_rep1     db "CATALG.HTM",00
     nombre_rep2     db "ABC.HTM",00
     nombre_rep3     db "FALTA.HTM",00
+    FileRepVentas   db "REP.TXT",00
 
     ;REPORTE DE VENTAS CATALOGO
     head_html       db "<html><head></head><body>"
@@ -181,6 +187,24 @@ include Macros.asm
     l_x             db "X","$"
     l_y             db "Y","$"
     l_z             db "Z","$"
+
+
+    CabeceraRepVentas db '---------------------------------------',0a,
+                         '           REPORTE DE VENTAS           ',0a,
+                         '---------------------------------------',0a,'$'
+    CerrarRepVentas   db '---------------------------------------',0a,'$'
+    Repdesc           db 'Descripcion: ','$'
+    NuevaLineaVenta   db 0a,'$'
+    RepDia            db 'Dia: ','$'
+    RepMes            db 'Mes: ','$'
+    RepAnio           db 'Anio: ','$'
+    RepHora           db 'Hora: ','$'
+    RepMinuto         db 'Minuto: ','$'
+    RepCodigo         db 'Codigo: ','$'
+    RepUnidades       db 'Unidades: ','$'
+    REPPARTE1         db 0a,'Parte1:  ',0a,'$'
+    REPPARTE2         db 0a,'Parte2:  ',0a,'$'
+    REPPARTE3         db 0a,'Parte3:  ',0a,'$'
 
 .code
 
@@ -3027,7 +3051,6 @@ make_prod endp
 
 ; ventas
 make_vent proc
-
     sold_Menu:
         mov IncItem , 0
         loop_solds:
@@ -4143,6 +4166,246 @@ seguir_convirtiendo:
 retorno_string_to_int:
     ret 
 
+IterarAvanzeReporte:
+    mov BX, [handle_ventas]
+    mov CX, 21
+    mov DX, offset cod_desc
+    mov AH, 3f
+    int 21
+    ; leer dia
+    mov BX, [handle_ventas]
+    mov CX, 02   
+    mov DX, offset dia
+    mov AH, 3f
+    int 21
+    ; leer mes
+    mov BX, [handle_ventas]
+    mov CX, 02
+    mov DX, offset mes
+    mov AH, 3f
+    int 21
+    ; leer anio
+    mov BX, [handle_ventas]
+    mov CX, 04
+    mov DX, offset anio
+    mov AH, 3f
+    int 21
+    ; leer hora
+    mov BX, [handle_ventas]
+    mov CX, 02
+    mov DX, offset hora
+    mov AH, 3f
+    int 21
+
+    ; leer minuto
+    mov BX, [handle_ventas]
+    mov CX, 02
+    mov DX, offset minuto
+    mov AH, 3f
+    int 21
+    ; leer codigo
+    mov BX, [handle_ventas]
+    mov CX, 05
+    mov DX, offset cod_prod
+    mov AH, 3f
+    int 21
+    ; leer numVentas
+    mov BX, [handle_ventas]
+    mov CX, 0002
+    mov DX, offset num_ventas
+    mov AH, 3f
+    int 21
+    ret
+
+check_up:
+    mov DX , cont_ventas_up
+    cmp DX ,  num_ventas
+    jl esMenor111
+    jg esMayor111
+    esMenor111: 
+        mov DX , num_ventas
+        mov cont_ventas_up , DX
+        ret
+    esMayor111:  
+            ret
+
+check_dn:
+    mov DX , cont_ventas_dn
+    cmp DX ,  num_ventas
+    jl esMenor11
+    jg esMayor11
+
+    esMayor11:
+        mov DX , num_ventas
+        mov cont_ventas_dn , DX
+    esMenor11: 
+        mov AX, [cont_ventas_dn]
+        call int_to_string
+        ;; [numero] tengo la cadena convertida
+
+        ret
+
+gene_ventas_rep:
+    mov BX, [handle_reps]
+    mov CX, 0D
+    mov DX, offset Repdesc
+    mov AH, 40
+    int 21
+
+    mov BX, [handle_reps]
+    mov CX, 21
+    mov DX, offset cod_desc
+    mov AH, 40
+    int 21
+
+    mov BX, [handle_reps]
+    mov CX, 01
+    mov DX, offset NuevaLineaVenta
+    mov AH, 40
+    int 21
+    ; dia
+    mov BX, [handle_reps]
+    mov CX, 05
+    mov DX, offset RepDia
+    mov AH, 40
+    int 21
+
+    mov BX, [handle_reps]
+    mov CX, 02
+    mov DX, offset dia
+    mov AH, 40
+    int 21
+
+    mov BX, [handle_reps]
+    mov CX, 01
+    mov DX, offset NuevaLineaVenta
+    mov AH, 40
+    int 21
+
+    ; mes
+    mov BX, [handle_reps]
+    mov CX, 05
+    mov DX, offset RepMes
+    mov AH, 40
+    int 21
+
+    mov BX, [handle_reps]
+    mov CX, 02
+    mov DX, offset mes
+    mov AH, 40
+    int 21
+
+    mov BX, [handle_reps]
+    mov CX, 01
+    mov DX, offset NuevaLineaVenta
+    mov AH, 40
+    int 21
+
+    ; anio
+    mov BX, [handle_reps]
+    mov CX, 06
+    mov DX, offset RepAnio
+    mov AH, 40
+    int 21
+
+    mov BX, [handle_reps]
+    mov CX, 04
+    mov DX, offset anio
+    mov AH, 40
+    int 21
+
+    mov BX, [handle_reps]
+    mov CX, 01
+    mov DX, offset NuevaLineaVenta
+    mov AH, 40
+    int 21
+
+    ;  hora
+    mov BX, [handle_reps]
+    mov CX, 06
+    mov DX, offset RepHora
+    mov AH, 40
+    int 21
+
+    mov BX, [handle_reps]
+    mov CX, 02
+    mov DX, offset hora
+    mov AH, 40
+    int 21
+
+    mov BX, [handle_reps]
+    mov CX, 01
+    mov DX, offset NuevaLineaVenta
+    mov AH, 40
+    int 21
+    ;  minuto
+    mov BX, [handle_reps]
+    mov CX, 08
+    mov DX, offset RepMinuto
+    mov AH, 40
+    int 21
+
+    mov BX, [handle_reps]
+    mov CX, 02
+    mov DX, offset minuto
+    mov AH, 40
+    int 21
+
+    mov BX, [handle_reps]
+    mov CX, 01
+    mov DX, offset NuevaLineaVenta
+    mov AH, 40
+    int 21
+    ;  Codigo
+    mov BX, [handle_reps]
+    mov CX, 08
+    mov DX, offset RepCodigo
+    mov AH, 40
+    int 21
+
+    mov BX, [handle_reps]
+    mov CX, 05
+    mov DX, offset cod_prod
+    mov AH, 40
+    int 21
+
+    mov BX, [handle_reps]
+    mov CX, 01
+    mov DX, offset NuevaLineaVenta
+    mov AH, 40
+    int 21
+
+    ;  unidades
+    mov BX, [handle_reps]
+    mov CX, 0A
+    mov DX, offset RepUnidades
+    mov AH, 40
+    int 21
+
+    mov AX, [num_ventas]
+    call int_to_string
+
+    mov BX, [handle_reps]
+    mov CX, 02
+    mov DX, offset numero
+    mov AH, 40
+    int 21
+
+    mov BX, [handle_reps]
+    mov CX, 01
+    mov DX, offset NuevaLineaVenta
+    mov AH, 40
+    int 21
+
+    mov BX, [handle_reps]
+    mov CX, 28
+    mov DX, offset CerrarRepVentas
+    mov AH, 40
+    int 21
+    call check_up
+    call check_dn
+    ret
+
 
 .startup
 inicio:   
@@ -4159,7 +4422,7 @@ inicio:
         cmp al , 32
         je mk_slds
         cmp al , 33
-        je tool_menu
+        je llamada_tool
         cmp al , 34
         je Exit
         PrintText opt_error_txt 
@@ -4188,7 +4451,7 @@ inicio:
         cmp al , 32
         je mk_abc
         cmp al , 33
-        je Main_Menu
+        je repote_de_ventas
         cmp al , 34
         je mk_noe
         cmp al , 35
@@ -4196,38 +4459,212 @@ inicio:
         PrintText opt_error_txt 
         jmp tool_menu
 
+    repote_de_ventas:
+        buscar_ventas_totales:
+            mov AH, 3D
+            mov AL, 02
+            mov DX, offset fileventas
+            int 21
+
+            mov [handle_ventas], AX
+            mov cont_ventas_t, 0
+
+            busqueda_de_ventas_inicio:
+                call IterarAvanzeReporte
+                cmp AX, 0000
+                je busqueda_de_ventas_final
+                inc cont_ventas_t
+                jmp busqueda_de_ventas_inicio
+                
+            busqueda_de_ventas_final:
+                MOV AH, 3E
+                int 21
+                ; mov AX, [cont_ventas_t]
+                ; call int_to_stringTotal
+
+                ; mov BX, 0001
+                ; mov CX, 0005
+                ; mov DX, offset numero
+                ; mov AH, 40
+                ; int 21
+
+                jmp generar_txt_reporte
+
+        generar_txt_reporte:
+            mov AH, 3C
+            mov CX, 0000
+            mov DX, offset FileRepVentas
+            int 21
+
+            MOV [handle_reps], AX
+            mov BX, [handle_reps]
+            mov CX, 77
+            mov DX, offset CabeceraRepVentas
+            mov AH, 40
+            int 21
+            mov CX, 0B
+            mov DX, offset REPPARTE1
+            mov AH, 40
+            int 21
+ 
+            mov AH, 3D
+            mov AL, 02
+            mov DX, offset fileventas
+            int 21
+
+            mov [handle_ventas], AX
+            mov cont_ventas_up, 0
+            mov cont_ventas_dn, 0ffh
+
+            mov DX, [cont_ventas_t]
+            cmp DX, 05
+            jbe comparar_menores_a5
+            jmp top_five
+
+        comparar_menores_a5:
+            mov DX, 0
+            mov [cont_ventas_t], DX
+            mov SI, 0
+            jmp continuar_recorrido
+        
+        top_five:
+            sub DX, 05
+            mov [cont_ventas_t], DX
+            mov SI, 0
+
+        continuar_recorrido:
+            call IterarAvanzeReporte
+            cmp AX, 0000
+            je terminar_recorrido
+            cmp SI, cont_ventas_t
+            jae imprimir_ventas
+            ;call gene_ventas_rep
+            inc SI
+            call check_up
+            call check_dn
+            jmp continuar_recorrido
+        
+        terminar_recorrido:
+            MOV AH, 3E
+            int 21
+            mov DX, 0000
+            mov [puntero_temp], DX
+            jmp impirmir_mayor_menor
+
+        imprimir_ventas:
+            ;; impimir reporte
+            call gene_ventas_rep
+            jmp continuar_recorrido
+
+        impirmir_mayor_menor:
+            mov AH, 3D
+            mov AL, 02
+            mov DX, offset fileventas
+            int 21
+
+            mov [handle_ventas], AX
+
+            continuar_recorrido_mayor_menor:
+                call IterarAvanzeReporte
+                cmp AX, 0000
+                je fin_reporte
+
+                mov DX, [puntero_temp]                
+                add DX, 34
+                mov [puntero_temp], DX
+
+                mov BX , cont_ventas_up
+                cmp BX , num_ventas
+                je encontrado1
+
+                mov BX , cont_ventas_dn
+                cmp BX , num_ventas
+                je encontrado2
+                 
+                jmp continuar_recorrido_mayor_menor
+                
+                encontrado1:
+                    mov DX, [puntero_temp]
+                    sub DX, 33
+                    mov CX, 0000
+                    mov BX, [handle_prods]
+                    mov AL, 00
+                    mov AH, 42
+                    int 21
+
+                    mov BX, [handle_reps]
+                    mov CX, 0B
+                    mov DX, offset  REPPARTE2
+                    mov AH, 40
+                    int 21
+                
+                    call  gene_ventas_rep
+                    jmp continuar_recorrido_mayor_menor
+                
+                encontrado2:
+                    mov DX, [puntero_temp]
+                    sub DX, 33
+                    mov CX, 0000
+                    mov BX, [handle_prods]
+                    mov AL, 00
+                    mov AH, 42
+                    int 21
+
+                    mov BX, [handle_reps]
+                    mov CX, 0B
+                    mov DX, offset  REPPARTE3
+                    mov AH, 40
+                    int 21
+                
+                    call  gene_ventas_rep
+                    jmp continuar_recorrido_mayor_menor
+
+            fin_reporte:
+                MOV AH, 3E
+                int 21
+                jmp tool_menu
+
+                
+
+
+        
+        
+
+
+
+
+    llamada_tool:
+        ClearScreen
+        call tool_menu
+        jmp Main_Menu
+
+
     mk_slds:
-        ClearScreen
         call make_vent
-        ClearScreen
         jmp Main_Menu
 
     mk_cat:
         ClearScreen
         call gene_catg
-        ClearScreen
         jmp tool_menu
 
     mk_abc:
         ClearScreen
         call gene_abcd
-        ClearScreen
         jmp tool_menu
 
     mk_noe:
         ClearScreen
         call gene_noex
-        ClearScreen
         jmp tool_menu
     
     mk_prod:
         ClearScreen
         call make_prod
-        ClearScreen
         jmp Prod_Menu
     
     sw_prod:
-        ClearScreen
+        ClearScreen 
         call shown_prod
         EnterOption
         jmp Prod_Menu
@@ -4235,7 +4672,6 @@ inicio:
     dl_prod:
         ClearScreen
         call delete_prod
-        ClearScreen
         jmp Prod_Menu
 
     Exit:
