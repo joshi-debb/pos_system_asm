@@ -158,6 +158,8 @@ include Macros.asm
     p_html          db "<p>"
     pc_html         db "</p>"
     msg_hora        db "Fecha: "
+
+    mgs_monto       db "Monto: "
     dos_puntos      db ":" 
     guion           db "-"
     diagonal        db "/" 
@@ -188,23 +190,21 @@ include Macros.asm
     l_y             db "Y","$"
     l_z             db "Z","$"
 
+    fecha_v         db 0a,'Fecha: ',0a,'$'
+    menor_que       db '  <','$'
+    menor_que2       db 0a,'  <','$'
+    mayor_que       db '> ','$'
+    ultimas_v       db 0a,'Ultimas Ventas: ',0a,'$'
+    doble_linea     db '===================================',0a,'$'
+    linea           db '-----------------------------------',0a,'$'
 
-    CabeceraRepVentas db '---------------------------------------',0a,
-                         '           REPORTE DE VENTAS           ',0a,
-                         '---------------------------------------',0a,'$'
-    CerrarRepVentas   db '---------------------------------------',0a,'$'
-    Repdesc           db 'Descripcion: ','$'
     NuevaLineaVenta   db 0a,'$'
-    RepDia            db 'Dia: ','$'
-    RepMes            db 'Mes: ','$'
-    RepAnio           db 'Anio: ','$'
-    RepHora           db 'Hora: ','$'
-    RepMinuto         db 'Minuto: ','$'
-    RepCodigo         db 'Codigo: ','$'
-    RepUnidades       db 'Unidades: ','$'
-    REPPARTE1         db 0a,'Parte1:  ',0a,'$'
-    REPPARTE2         db 0a,'Parte2:  ',0a,'$'
-    REPPARTE3         db 0a,'Parte3:  ',0a,'$'
+
+    RepCodigo         db '      Precio:   ','$'
+    RepUnidades       db '      Unidades: ','$'
+
+    mayor_ventas      db 0a,'Venta con mayor monto: ',0a,'$'
+    menor_ventas      db 0a,'Venta con menor monto:  ',0a,'$'
 
 .code
 
@@ -245,7 +245,7 @@ gene_catg proc
         mov BX, [handle_prods]
         mov CX, 05
         mov DX, offset cod_prod
-        mov AH,3F
+        mov AH, 3F
         int 21
         mov BX, [handle_prods]
         mov CX, 21
@@ -3341,6 +3341,11 @@ make_vent proc
             mov AH, 40
             int 21
 
+            mov CX, 02
+            mov DX, offset num_price
+            mov AH, 40
+            int 21
+
             mov CX, 0002
             mov DX, offset num_ventas
             mov AH, 40   
@@ -4209,6 +4214,14 @@ IterarAvanzeReporte:
     mov DX, offset cod_prod
     mov AH, 3f
     int 21
+
+    ; leer codigo
+    mov BX, [handle_ventas]
+    mov CX, 02
+    mov DX, offset num_price
+    mov AH, 3f
+    int 21
+
     ; leer numVentas
     mov BX, [handle_ventas]
     mov CX, 0002
@@ -4246,108 +4259,114 @@ check_dn:
         ret
 
 gene_ventas_rep:
+
     mov BX, [handle_reps]
-    mov CX, 0D
-    mov DX, offset Repdesc
+    mov CX, 07
+    mov DX, offset fecha_v
     mov AH, 40
     int 21
 
+    ;;ESCRIBIR FECHA Y HORA
+
+    ;;escribir fecha
     mov BX, [handle_reps]
-    mov CX, 21
-    mov DX, offset cod_desc
     mov AH, 40
+    mov CH, 00
+    mov CL, 04
+    mov DX, offset menor_que2
     int 21
 
     mov BX, [handle_reps]
-    mov CX, 01
-    mov DX, offset NuevaLineaVenta
     mov AH, 40
-    int 21
-    ; dia
-    mov BX, [handle_reps]
-    mov CX, 05
-    mov DX, offset RepDia
-    mov AH, 40
-    int 21
-
-    mov BX, [handle_reps]
-    mov CX, 02
+    mov CH, 00
+    mov CL, 02
     mov DX, offset dia
-    mov AH, 40
     int 21
 
     mov BX, [handle_reps]
-    mov CX, 01
-    mov DX, offset NuevaLineaVenta
     mov AH, 40
-    int 21
-
-    ; mes
-    mov BX, [handle_reps]
-    mov CX, 05
-    mov DX, offset RepMes
-    mov AH, 40
+    mov CH, 00
+    mov CL, 01
+    mov DX, offset diagonal
     int 21
 
     mov BX, [handle_reps]
-    mov CX, 02
+    mov AH, 40
+    mov CH, 00
+    mov CL, 02
     mov DX, offset mes
-    mov AH, 40
     int 21
 
     mov BX, [handle_reps]
-    mov CX, 01
-    mov DX, offset NuevaLineaVenta
     mov AH, 40
-    int 21
-
-    ; anio
-    mov BX, [handle_reps]
-    mov CX, 06
-    mov DX, offset RepAnio
-    mov AH, 40
+    mov CH, 00
+    mov CL, 01
+    mov DX, offset diagonal
     int 21
 
     mov BX, [handle_reps]
-    mov CX, 04
+    mov AH, 40
+    mov CH, 00
+    mov CL, 04
     mov DX, offset anio
-    mov AH, 40
     int 21
 
     mov BX, [handle_reps]
-    mov CX, 01
-    mov DX, offset NuevaLineaVenta
     mov AH, 40
-    int 21
-
-    ;  hora
-    mov BX, [handle_reps]
-    mov CX, 06
-    mov DX, offset RepHora
-    mov AH, 40
+    mov CH, 00
+    mov CL , 02
+    mov DX, offset mayor_que
     int 21
 
     mov BX, [handle_reps]
-    mov CX, 02
+    mov AH, 40
+    mov CH, 00
+    mov CL, 03
+    mov DX, offset menor_que
+    int 21
+
+    ;; escribir hora;;
+    mov BX, [handle_reps]
+    mov AH, 40
+    mov CH, 00
+    mov CL, 02
     mov DX, offset hora
-    mov AH, 40
     int 21
 
     mov BX, [handle_reps]
-    mov CX, 01
-    mov DX, offset NuevaLineaVenta
     mov AH, 40
+    mov CH, 00
+    mov CL , 01
+    mov DX, offset dos_puntos
     int 21
-    ;  minuto
     mov BX, [handle_reps]
-    mov CX, 08
-    mov DX, offset RepMinuto
     mov AH, 40
-    int 21
-
-    mov BX, [handle_reps]
-    mov CX, 02
+    mov CH, 00
+    mov CL, 02
     mov DX, offset minuto
+    int 21
+
+    ;; cerrar hora
+    mov BX, [handle_reps]
+    mov AH, 40
+    mov CH, 00
+    mov CL , 02
+    mov DX, offset mayor_que
+    int 21
+
+
+
+    ;;FIN ESCRIBIR FECHA Y HORA
+    
+    mov BX, [handle_reps]
+    mov CX, 01
+    mov DX, offset NuevaLineaVenta
+    mov AH, 40
+    int 21
+
+    mov BX, [handle_reps]
+    mov CX, lengthof mgs_monto
+    mov DX, offset mgs_monto
     mov AH, 40
     int 21
 
@@ -4356,18 +4375,28 @@ gene_ventas_rep:
     mov DX, offset NuevaLineaVenta
     mov AH, 40
     int 21
+
     ;  Codigo
     mov BX, [handle_reps]
-    mov CX, 08
+    mov CX, 10
     mov DX, offset RepCodigo
     mov AH, 40
     int 21
 
+    mov AX, [num_price]
+    call int_to_string
+
     mov BX, [handle_reps]
-    mov CX, 05
-    mov DX, offset cod_prod
+    mov CX, 02
+    mov DX, offset numero
     mov AH, 40
     int 21
+
+    ; mov BX, [handle_reps]
+    ; mov CX, 02
+    ; mov DX, offset num_price
+    ; mov AH, 40
+    ; int 21
 
     mov BX, [handle_reps]
     mov CX, 01
@@ -4377,7 +4406,7 @@ gene_ventas_rep:
 
     ;  unidades
     mov BX, [handle_reps]
-    mov CX, 0A
+    mov CX, 10
     mov DX, offset RepUnidades
     mov AH, 40
     int 21
@@ -4397,11 +4426,12 @@ gene_ventas_rep:
     mov AH, 40
     int 21
 
-    mov BX, [handle_reps]
-    mov CX, 28
-    mov DX, offset CerrarRepVentas
+    mov CX, 23
+    mov DX, offset linea
     mov AH, 40
     int 21
+
+
     call check_up
     call check_dn
     ret
@@ -4479,34 +4509,142 @@ inicio:
             busqueda_de_ventas_final:
                 MOV AH, 3E
                 int 21
-                ; mov AX, [cont_ventas_t]
-                ; call int_to_stringTotal
-
-                ; mov BX, 0001
-                ; mov CX, 0005
-                ; mov DX, offset numero
-                ; mov AH, 40
-                ; int 21
-
                 jmp generar_txt_reporte
 
         generar_txt_reporte:
+            get_date
+            get_hour
+
             mov AH, 3C
             mov CX, 0000
             mov DX, offset FileRepVentas
             int 21
 
             MOV [handle_reps], AX
+
+            ;;CABECERA DE LA VENTA
+            ;;escribir fecha
+
             mov BX, [handle_reps]
-            mov CX, 77
-            mov DX, offset CabeceraRepVentas
+            mov AH, 40
+            mov CH, 00
+            mov CL, 03
+            mov DX, offset menor_que
+            int 21
+
+            mov BX, [handle_reps]
+            mov AH, 40
+            mov CH, 00
+            mov CL, 02
+            mov DX, offset dia
+            int 21
+
+            mov BX, [handle_reps]
+            mov AH, 40
+            mov CH, 00
+            mov CL, 01
+            mov DX, offset diagonal
+            int 21
+
+            mov BX, [handle_reps]
+            mov AH, 40
+            mov CH, 00
+            mov CL, 02
+            mov DX, offset mes
+            int 21
+
+            mov BX, [handle_reps]
+            mov AH, 40
+            mov CH, 00
+            mov CL, 01
+            mov DX, offset diagonal
+            int 21
+
+            mov BX, [handle_reps]
+            mov AH, 40
+            mov CH, 00
+            mov CL, 04
+            mov DX, offset anio
+            int 21
+
+            mov BX, [handle_reps]
+            mov AH, 40
+            mov CH, 00
+            mov CL , 02
+            mov DX, offset mayor_que
+            int 21
+
+            mov BX, [handle_reps]
+            mov AH, 40
+            mov CH, 00
+            mov CL, 03
+            mov DX, offset menor_que
+            int 21
+
+            ;; escribir hora;;
+            mov BX, [handle_reps]
+            mov AH, 40
+            mov CH, 00
+            mov CL, 02
+            mov DX, offset hora
+            int 21
+
+            mov BX, [handle_reps]
+            mov AH, 40
+            mov CH, 00
+            mov CL , 01
+            mov DX, offset dos_puntos
+            int 21
+            mov BX, [handle_reps]
+            mov AH, 40
+            mov CH, 00
+            mov CL, 02
+            mov DX, offset minuto
+            int 21
+
+            ;; cerrar hora
+            mov BX, [handle_reps]
+            mov AH, 40
+            mov CH, 00
+            mov CL , 02
+            mov DX, offset mayor_que
+            int 21
+
+            mov BX, [handle_reps]
+            mov CX, 01
+            mov DX, offset NuevaLineaVenta
             mov AH, 40
             int 21
-            mov CX, 0B
-            mov DX, offset REPPARTE1
+
+            mov CX, 23
+            mov DX, offset linea
             mov AH, 40
             int 21
- 
+
+            mov BX, [handle_reps]
+            mov CX, 01
+            mov DX, offset NuevaLineaVenta
+            mov AH, 40
+            int 21
+
+            mov CX, 23
+            mov DX, offset linea
+            mov AH, 40
+            int 21
+
+            mov CX, 11
+            mov DX, offset ultimas_v
+            mov AH, 40
+            int 21
+
+            mov BX, [handle_reps]
+            mov CX, 01
+            mov DX, offset NuevaLineaVenta
+            mov AH, 40
+            int 21
+
+            ;; CIERRA CABECERA DE LA VENTA
+
             mov AH, 3D
             mov AL, 02
             mov DX, offset fileventas
@@ -4593,8 +4731,25 @@ inicio:
                     int 21
 
                     mov BX, [handle_reps]
-                    mov CX, 0B
-                    mov DX, offset  REPPARTE2
+                    mov CX, 01
+                    mov DX, offset NuevaLineaVenta
+                    mov AH, 40
+                    int 21
+
+                    mov CX, 23
+                    mov DX, offset linea
+                    mov AH, 40
+                    int 21
+
+                    mov BX, [handle_reps]
+                    mov CX, 18
+                    mov DX, offset  mayor_ventas
+                    mov AH, 40
+                    int 21
+
+                    mov BX, [handle_reps]
+                    mov CX, 01
+                    mov DX, offset NuevaLineaVenta
                     mov AH, 40
                     int 21
                 
@@ -4611,8 +4766,25 @@ inicio:
                     int 21
 
                     mov BX, [handle_reps]
-                    mov CX, 0B
-                    mov DX, offset  REPPARTE3
+                    mov CX, 01
+                    mov DX, offset NuevaLineaVenta
+                    mov AH, 40
+                    int 21
+
+                    mov CX, 23
+                    mov DX, offset linea
+                    mov AH, 40
+                    int 21
+
+                    mov BX, [handle_reps]
+                    mov CX, 18
+                    mov DX, offset  menor_ventas
+                    mov AH, 40
+                    int 21
+
+                    mov BX, [handle_reps]
+                    mov CX, 01
+                    mov DX, offset NuevaLineaVenta
                     mov AH, 40
                     int 21
                 
@@ -4623,14 +4795,6 @@ inicio:
                 MOV AH, 3E
                 int 21
                 jmp tool_menu
-
-                
-
-
-        
-        
-
-
 
 
     llamada_tool:
